@@ -29,11 +29,18 @@ export async function createInvoice(formData: FormData) {
   // 時間変換
   const date = new Date().toISOString().split('T')[0]
 
-  // データ挿入
-  await sql`
-  INSERT INTO invoices (customer_id, amount, status, date)
-  VALUES (${customerId}, ${amountInCents}, ${status}, ${date})
-  `
+  try {
+    // データ挿入
+    await sql`
+    INSERT INTO invoices (customer_id, amount, status, date)
+    VALUES (${customerId}, ${amountInCents}, ${status}, ${date})
+    `
+  } catch (error) {
+    console.error(error)
+    return {
+      message: 'Database Error: Failed to Create Invoice.'
+    }
+  }
 
   revalidatePath('/dashboard/invoices')
   redirect('/dashboard/invoices')
@@ -46,19 +53,30 @@ export async function updateInvoice(id: string, formData: FormData) {
     status: formData.get('status')
   })
 
+  if (isNaN(amount) || amount <= 0) {
+    return { error: '金額は0より大きい値を入力してください。' }
+  }
+
   const amountInCents = amount * 100
 
-  await sql`
-  UPDATE invoices
-  SET customer_id = ${customerId}, amount = ${amountInCents}, status = ${status}
-  WHERE id = ${id}
-  `
+  try {
+    await sql`
+      UPDATE invoices
+      SET customer_id = ${customerId}, amount = ${amountInCents}, status = ${status}
+      WHERE id = ${id}
+    `
+  } catch (error) {
+    console.error(error)
+    return { error: 'Database Error: Failed to Update Invoice.' }
+  }
 
   revalidatePath('/dashboard/invoices')
   redirect('/dashboard/invoices')
 }
 
 export async function deleteInvoice(id: string) {
+  throw new Error('Failed to Delete Invoice.')
+
   await sql`DELETE FROM invoices WHERE id = ${id}`
   revalidatePath('/dashboard/invoices')
 }
